@@ -6,6 +6,7 @@ from flask_jwt_extended import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, time
 from models import db, User, Appointment
+import os
 
 app = Flask(__name__)
 
@@ -181,4 +182,5 @@ def update_status(id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
