@@ -1,205 +1,132 @@
-# Barbing Salon Booking System API
+Barbing Salon Appointment Backend
 
-This is a simple, realistic REST API built with Flask and Python for an online barbing salon booking system.  
-It is designed for beginner and amateur developers who are still learning backend development.
+This is a Flask-based RESTful API for managing an online barbing salon booking system. It includes user authentication, appointment management, and admin features using JWT for secure access.
 
-The system supports:
-- User registration and login using JWT authentication
-- Role-based access (user and admin)
-- Appointment booking with real-world constraints
-- Admin management of appointments
-- No third-party services (no email, no payments)
 
-The API is tested using Postman and uses SQLite as the database.
+Project Structure
 
----
-
-## Features
-
-### Authentication
-- User registration
-- User login with JWT
-- Forgot password (reset by email lookup)
-- JWT-based protected routes
-
-### User Features
-- Book an appointment
-- View own appointments
-- Cancel own appointments
-- Appointments cannot overlap
-- Appointments must be within working hours
-- Appointments cannot be booked in the past
-
-### Admin Features
-- View all appointments
-- Update appointment status
-- Admin is a user with role = "admin"
-
-### Business Rules
-- Barber working hours: 10:00 AM – 10:00 PM
-- Default appointment duration: 30 minutes
-- Overlapping bookings are not allowed
-- Only pending and approved appointments block time slots
-- Cancelled and completed appointments free time slots
-
----
-
-## Project Structure
-
-barbing_api/
+barbing-backend/
 │
-├── app.py
-├── models.py
-├── requirements.txt
-└── barbing.db
+├── app.py               # Main Flask application and API endpoints
+├── models.py            # Database models for Users and Appointments
+├── requirements.txt     # Python dependencies
+└── barbing.db           # SQLite database file (auto-created) (inside instance folder)
+	•	app.py contains all routes for user authentication, appointment management, and admin features.
+	•	models.py defines the database models (User and Appointment) using SQLAlchemy.
+	•	requirements.txt lists all dependencies needed for the project.
+	•	barbing.db is automatically created when the app runs for the first time.
 
----
 
-## Requirements
 
-- Python 3.9 or higher
-- pip
+Setup and Installation
+1.	Clone the repository:
 
-## Installation
+git clone <repo-url>
+cd barbing-backend
+	
+2.	Create a virtual environment:
 
-1. Clone or download the project
-2. Navigate into the project directory
-3. Install dependencies
+python -m venv venv
+source venv/bin/activate   # Linux/Mac
+venv\Scripts\activate      # Windows
 
+3.	Install dependencies:
 
 pip install -r requirements.txt
 
-Running the Application
-Start the server using:
+4.	Run the application:
+
 python app.py
 
-The API will run on:
+The server will start on http://localhost:5000 by default.
 
 
-http://127.0.0.1:5000
+
+Environment Variables
+	•	PORT – Optional, default is 5000.
+	•	JWT_SECRET_KEY – Secret key for JWT token generation. Default in code: “super-secret-key”.
+	•	SQLALCHEMY_DATABASE_URI – Database URI. Default in code: sqlite:///barbing.db.
+
 
 Database
-SQLite is used
 
-Database file: barbing.db
-Tables are automatically created on first run
-You may delete barbing.db to reset the system
+The backend uses SQLite (barbing.db).
+
+User Model:
+	•	id – Primary key
+	•	name – User’s name
+	•	email – Unique, required
+	•	password – Hashed password
+	•	role – Either user or admin, default is user
+
+Appointment Model:
+	•	id – Primary key
+	•	user_id – Foreign key referencing the user
+	•	service – Type of barbing service
+	•	start_time – Appointment start time
+	•	end_time – Appointment end time
+	•	status – Either pending, approved, or cancelled
+	•	created_at – Timestamp when the appointment was created
+
+Setting a User as Admin 
+By default, all users are created with the role "user". To access admin-only endpoints, a user must have the role "admin". You can set a user as admin using one of the following methods:
+
+Option 1: Manually update the SQLite database
+1.	Open barbing.db using SQLite CLI or a GUI like DB Browser for SQLite.
+2.  Run the following SQL command, replacing the email with the user you want to promote:
+
+UPDATE user
+SET role = 'admin'
+WHERE email = 'admin@example.com';
+
+3.	Save changes. That user now has admin access.
+
+Option 2: Update role using Python
+1.	Open a Python shell in your project folder:
+
+2.	Run the following code:
+
+from app import app, db
+from models import User
+
+with app.app_context():
+    user = User.query.filter_by(email="admin@example.com").first()
+    user.role = "admin"
+    db.session.commit()
+
+The selected user now has admin privileges.
+
 
 API Endpoints
 
-Register User
+Authentication:
+	•	POST /register – Register a new user. Body: {"name": "...", "email": "...", "password": "..."}
+	•	POST /login – User login. Body: {"email": "...", "password": "..."}
+	•	POST /forgot-password – Reset password. Body: {"email": "...", "new_password": "..."}
 
-POST /register
+User Appointments:
+	•	POST /appointments – Create a new appointment. Body: {"service": "...", "start_time": "YYYY-MM-DD HH:MM", "duration": 30}
+	•	GET /appointments – Get all appointments of the logged-in user.
+	•	PUT /appointments/<id>/cancel – Cancel a specific appointment.
 
-Body:
+Admin Appointments:
+	•	GET /admin/appointments – View all appointments (admin only).
+	•	PUT /admin/appointments/<id> – Update appointment status. Body: {"status": "approved"} or {"status": "cancelled"}
 
-{
-  "name": "John Doe",
-  "email": "john@test.com",
-  "password": "123456"
-}
+Authentication Requirement:
+All /appointments and /admin/appointments endpoints require a valid JWT token in the header:
 
-Login
-POST /login
-Body:
-{
-  "email": "john@test.com",
-  "password": "123456"
-}
-
-Response:
-{
-  "access_token": "JWT_TOKEN"
-}
-
-Forgot Password
-POST /forgot-password
-Body:
-{
-  "email": "john@test.com",
-  "new_password": "newpassword"
-}
-
-Create Appointment
-POST /appointments
-Headers:
-
-Authorization: Bearer JWT_TOKEN
-Content-Type: application/json
-Body:
-{
-  "service": "Hair Cut",
-  "start_time": "2025-01-15 14:00",
-  "duration": 30
-}
-Rules:
-
-Must be within 10:00 AM – 10:00 PM
-
-Must not overlap another appointment
-
-Cannot be in the past
-
-View Own Appointments
-GET /appointments
-Headers:
-Authorization: Bearer JWT_TOKEN
-
-Cancel Appointment
-PUT /appointments/<id>/cancel
-Headers:
-Authorization: Bearer JWT_TOKEN
+Authorization: Bearer <access_token>
 
 
-Admin Operations
-Making a User an Admin
-Admin is not a separate account type.
-To make a user an admin, update the user role in the database.
+⸻
 
-Using SQLite:
+Testing the API
+	•	Use an API client like Postman
+	1.	Register a user with POST /register.
+	2.	Login with POST /login to get a JWT token.
+	3.	Book an appointment with POST /appointments.
+	4.	View appointments with GET /appointments.
+	5.	Admin can view all appointments with GET /admin/appointments and update statuses with PUT /admin/appointments
 
-UPDATE user SET role='admin' WHERE email='john@test.com';
-After updating the role:
-
-Login again
-
-Use the new token for admin requests
-
-View All Appointments (Admin Only)
-
-GET /admin/appointments
-Headers:
-Authorization: Bearer ADMIN_JWT_TOKEN
-
-Update Appointment Status (Admin Only)
-
-PUT /admin/appointments/<id>
-Headers:
-Authorization: Bearer ADMIN_JWT_TOKEN
-Content-Type: application/json
-Body:
-
-{
-  "status": "approved"
-}
-Valid statuses:
-
-pending
-
-approved
-
-completed
-
-cancelled
-
-Postman Testing Flow
-Register a user
-Login and copy the JWT token
-Set Authorization to Bearer Token in Postman
-Create an appointment
-View appointments
-Cancel appointment (optional)
-Change user role to admin
-Login again
-Test admin endpoints
-
+Make sure the backend is running on localhost:5000 or your deployed URL.
