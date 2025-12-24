@@ -10,8 +10,16 @@ from models import Barber, Customer, Service, Booking
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///barbing.db"
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = False
 
-CORS(app)
+
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/*": {"origins": "*"}}
+)
+
 
 init_db(app)
 
