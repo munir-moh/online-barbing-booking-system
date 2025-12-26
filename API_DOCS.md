@@ -1,95 +1,50 @@
-API Documentation
-Base URL: https://barbing-salon-api.onrender.com
+Endpoints, Payloads, and Responses
+1. Register (Barber or Customer)
 
-All requests and responses use JSON.
-Authentication is session-based (cookies must be preserved in Postman or frontend).
+POST /register
 
-ADMIN ENDPOINTS
--Admin Login
-POST /admin/login
-Request body:
+Payload:
 {
-  "password": "admin123"
-}
-
-Success response:
-{
-  "msg": "Admin logged in"
-}
-
-Error response:
-{
-  "msg": "Invalid admin password"
-}
-
--Get Pending Barbers
-GET /admin/pending-barbers
-
-Success response
-[
-  {
-    "id": 1,
-    "name": "Munir Mohammed",
-    "shop_name": "Munir's Cuts",
-    "phone": "08012345678"
-  }
-]
-
--Approve Barber
-POST /admin/approve/<barber_id>
-
-Response:
-{
-  "msg": "Barber approved"
-}
-
--Reject Barber
-POST /admin/reject/<barber_id>
-
-Response:
-{
-  "msg": "Barber rejected"
-}
-
-BARBER ENDPOINTS
--Barber Register
-POST /barber/register
-Request body:
-{
-  "name": "Munir Mohammed",
+  "name": "John Doe",
   "phone": "08012345678",
-  "email": "munir@gmail.com",
-  "shop_name": "Munir's Cuts",
-  "address": "AV16, Kaduna",
-  "password": "password123"
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "barber"   // or "customer"
 }
 
 Response:
 {
-  "msg": "Barber registered, awaiting approval"
+  "msg": "Registered successfully"
 }
 
--Barber Login
-POST /barber/login
+2. Login
+POST /login
 
-Request body:
+Payload:
 {
-  "login": "munir@gmail.com",
+  "email": "john@example.com",
   "password": "password123"
 }
 
-Response:
+Response (Barber):
 {
   "msg": "Login successful",
-  "status": "approved"
+  "role": "barber"
 }
 
--Barber Forgot Password
-POST /barber/forgot-password
-
-Request body:
+Response (Customer):
 {
-  "login": "munir@gmail.com",
+  "msg": "Login successful",
+  "role": "customer"
+}
+
+3. Forgot Password
+
+POST /forgot-password
+
+Payload:
+{
+  "email": "john@example.com",
   "new_password": "newpassword123"
 }
 
@@ -98,40 +53,130 @@ Response:
   "msg": "Password updated successfully"
 }
 
--Add Service
-POST /barber/services
+4. Setup Barber Shop Profile
 
-Request body:
+POST /barber/setup
+
+Payload:
 {
-  "name": "Haircut",
-  "price": 1500
+  "shop_name": "Barber Kings",
+  "description": "Luxury haircuts and grooming",
+  "address": "123 Barber Street",
+  "phone": "08012345678",
+  "email": "barber@example.com",
+  "operating_hours": {
+    "monday": "09:00-18:00",
+    "tuesday": "09:00-18:00",
+    "wednesday": "09:00-18:00",
+    "thursday": "09:00-18:00",
+    "friday": "09:00-18:00",
+    "saturday": "10:00-16:00",
+    "sunday": "closed"
+  }
 }
 
 Response:
 {
-  "msg": "Service added"
+  "msg": "Barber profile set up successfully"
 }
 
--View Barber Bookings
-GET /barber/bookings
+5. Add Service
+
+POST /barber/service
+
+Payload:
+{
+  "name": "Haircut",
+  "price": 1500,
+  "duration": 60,
+  "description": "Standard haircut"
+}
+
+Response:
+{
+  "msg": "Service added successfully"
+}
+
+6. Add Team Member
+
+POST /barber/team-member
+
+Payload:
+{
+  "name": "Mike",
+  "specialization": "Haircut"
+}
+
+Response:
+{
+  "msg": "Team member added successfully"
+}
+
+7. View Barbers (Customer)
+
+GET /barbers
 
 Response:
 [
   {
     "id": 1,
+    "shop_name": "Barber Kings",
+    "address": "123 Barber Street",
+    "phone": "08012345678",
+    "email": "barber@example.com",
+    "description": "Luxury haircuts and grooming",
+    "operating_hours": {
+      "monday": "09:00-18:00",
+      "tuesday": "09:00-18:00",
+      ...
+    }
+  }
+]
+
+8. Book Appointment (Customer)
+
+POST /book
+
+Payload:
+{
+  "barber_id": 1,
+  "service_name": "Haircut",
+  "date": "2025-12-28",
+  "time": "12:00",
+  "preferred_team_member": "Mike",
+  "location": "shop"  // or "home"
+}
+
+Response:
+{
+  "msg": "Booking created"
+}
+
+9. View Bookings (Customer)
+
+GET /my-bookings
+
+Response:
+[
+  {
+    "id": 1,
+    "barber": "Barber Kings",
     "service": "Haircut",
-    "date": "2025-12-25",
+    "date": "2025-12-28",
     "time": "12:00",
+    "team_member": "Mike",
+    "price": 1500,
     "status": "pending"
   }
 ]
 
--Update Booking Status
+10. Update Booking (Barber)
+
 PATCH /barber/booking/<booking_id>
 
-Request body:
+Payload:
 {
-  "status": "completed"
+  "status": "approved"  // or "rejected" or "completed"
 }
 
 Response:
@@ -139,111 +184,27 @@ Response:
   "msg": "Booking updated"
 }
 
-CUSTOMER ENDPOINTS
--Customer Register
-POST /customer/register
-Request body:
-{
-  "name": "Mubee",
-  "phone": "08098765432",
-  "email": "mubee@gmail.com",
-  "password": "mypassword"
-}
+11. Cancel Booking (Customer)
 
-Response:
-{
-  "msg": "Customer registered"
-}
-
--Customer Login
-POST /customer/login
-
-Request body:
-{
-  "login": "mubee@gmail.com",
-  "password": "mypassword"
-}
-
-Response:
-{
-  "msg": "Login successful"
-}
-
--Customer Forgot Password
-POST /customer/forgot-password
-
-Request body:
-{
-  "login": "mubee@gmail.com",
-  "new_password": "newpass123"
-}
-
-Response:
-{
-  "msg": "Password updated successfully"
-}
-
--List Approved Barbers
-GET /barbers
-
-Response:
-[
-  {
-    "id": 1,
-    "shop_name": "Munir's Cuts"
-  }
-]
-
--Book Barber
-POST /book
-Request body:
-{
-  "barber_id": 1,
-  "service": "Haircut",
-  "date": "2025-12-25",
-  "time": "12:00",
-  "location": "shop"
-}
-
-Success response:
-{
-  "msg": "Booking created"
-}
-
-Error (time already booked):
-{
-  "msg": "Time already booked"
-}
-
--View Customer Bookings
-GET /my-bookings
-
-Response:
-[
-  {
-    "id": 1,
-    "date": "2025-12-25",
-    "time": "12:00",
-    "status": "pending"
-  }
-]
-
--Cancel Booking
 DELETE /cancel/<booking_id>
 
-Success response:
+Response:
 {
   "msg": "Booking cancelled"
 }
 
-Error (less than 2 hours):
+12. Logout
+
+POST /logout
+
+Response:
 {
-  "msg": "Too late to cancel"
+  "msg": "Logged out successfully"
 }
 
-Important Notes
--Sessions are cookie-based; Postman must preserve cookies.
--All passwords are hashed.
--No JWT is used.
--Database is created automatically on first run.
--CORS is enabled for frontend integration.
+Notes
+All endpoints are session-based
+Barber approvals are not required; as soon as they set up their profile, they are listed publicly.
+Bookings automatically start as pending, and barbers can approve/reject them.
+Customers cannot cancel appointments less than 2 hours before the booked time.
+CORS is enabled for http://localhost:5173 (adjust if your frontend runs elsewhere).

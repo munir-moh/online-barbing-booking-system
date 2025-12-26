@@ -1,245 +1,277 @@
 from flask import Flask, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask_cors import CORS
 
-from config import SECRET_KEY, ADMIN_PASSWORD
+from config import SECRET_KEY, SQLALCHEMY_DATABASE_URI
 from database import db, init_db
-from models import Barber, Customer, Service, Booking
+from models import (
+    User,
+    BarberProfile,
+    OperatingHour,
+    Service,
+    TeamMember,
+    Booking
+)
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = SECRET_KEY
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///barbing.db"
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config["SESSION_COOKIE_SECURE"] = False
 
-
-CORS(
-    app,
-    supports_credentials=True,
-    resources={r"/*": {"origins": "*"}}
+app.config.update(
+    SECRET_KEY=SECRET_KEY,
+    SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI,
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True
 )
 
 
+CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+
 init_db(app)
 
-@app.route("/admin/login", methods=["POST"])
-def admin_login():
-    if request.json.get("password") == ADMIN_PASSWORD:
-        session["admin"] = True
-        return jsonify({"msg": "Admin logged in"})
-    return jsonify({"msg": "Invalid admin password"}), 401
 
-@app.route("/admin/pending-barbers")
-def pending_barbers():
-    if not session.get("admin"):
-        return jsonify({"msg": "Unauthorized"}), 403
-    barbers = Barber.query.filter_by(status="pending").all()
-    return jsonify([{
-        "id": b.id,
-        "name": b.name,
-        "shop_name": b.shop_name,
-        "phone": b.phone
-    } for b in barbers])
-
-@app.route("/admin/approve/<int:barber_id>", methods=["POST"])
-def approve_barber(barber_id):
-    if not session.get("admin"):
-        return jsonify({"msg": "Unauthorized"}), 403
-    barber = Barber.query.get(barber_id)
-    barber.status = "approved"
-    db.session.commit()
-    return jsonify({"msg": "Barber approved"})
-
-@app.route("/admin/reject/<int:barber_id>", methods=["POST"])
-def reject_barber(barber_id):
-    if not session.get("admin"):
-        return jsonify({"msg": "Unauthorized"}), 403
-    barber = Barber.query.get(barber_id)
-    barber.status = "rejected"
-    db.session.commit()
-    return jsonify({"msg": "Barber rejected"})
-
-
-@app.route("/barber/register", methods=["POST"])
-def barber_register():
+@app.route("/register", methods=["POST"])
+def register():
     data = request.json
-    barber = Barber(
+
+    if User.query.filter_by(email=data["email"]).first():
+        return jsonify({"msg": "Email already registered"}), 400
+
+    user = User(
         name=data["name"],
         phone=data["phone"],
         email=data["email"],
-        shop_name=data["shop_name"],
-        address=data["address"],
+        role=data["role"],  # barber | customer
         password=generate_password_hash(data["password"])
     )
-    db.session.add(barber)
+
+    db.session.add(user)
     db.session.commit()
-    return jsonify({"msg": "Barber registered, awaiting approval"})
 
-@app.route("/barber/login", methods=["POST"])
-def barber_login():
+    return jsonify({"msg": "Registration successful"})
+
+
+@app.route("/login", methods=["POST"])
+def login():
     data = request.json
-    barber = Barber.query.filter(
-        (Barber.email == data["login"]) | (Barber.phone == data["login"])
-    ).first()
 
-    if barber and check_password_hash(barber.password, data["password"]):
-        session["barber_id"] = barber.id
-        return jsonify({"msg": "Login successful", "status": barber.status})
-    return jsonify({"msg": "Invalid credentials"}), 401
+    user = User.query.filter_by(email=data["email"]).first()
 
-@app.route("/barber/forgot-password", methods=["POST"])
-def barber_forgot_password():
+    if not user or not check_password_hash(user.password, data["password"]):
+        return jsonify({"msg": "Invalid credentials"}), 401
+
+    session["user_id"] = user.id
+    session["role"] = user.role
+
+    return jsonify({
+        "msg": "Login successful",
+        "role": user.role
+    })
+
+
+@app.route("/forgot-password", methods=["POST"])
+def forgot_password():
     data = request.json
-    barber = Barber.query.filter(
-        (Barber.email == data["login"]) | (Barber.phone == data["login"])
-    ).first()
-    if not barber:
-        return jsonify({"msg": "Email or phone not registered"}), 404
 
-    barber.password = generate_password_hash(data["new_password"])
+    user = User.query.filter_by(email=data["email"]).first()
+    if not user:
+        return jsonify({"msg": "Email not registered"}), 404
+
+    user.password = generate_password_hash(data["new_password"])
     db.session.commit()
-    return jsonify({"msg": "Password updated successfully"})
+
+    return jsonify({"msg": "Password updated"})
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return jsonify({"msg": "Logged out"})
+
+
+@app.route("/barber/setup", methods=["POST"])
+def barber_setup():
+    if session.get("role") != "barber":
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    data = request.json
+    user_id = session["user_id"]
+
+    profile = BarberProfile(
+        user_id=user_id,
+        shop_name=data["shop_name"],
+        description=data.get("description"),
+        address=data["address"],
+        phone=data["phone"],
+        email=data["email"]
+    )
+
+    db.session.add(profile)
+    db.session.commit()
+
+    return jsonify({"msg": "Barber profile created"})
+
+
+@app.route("/barber/operating-hours", methods=["POST"])
+def set_operating_hours():
+    if session.get("role") != "barber":
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    data = request.json
+    barber_id = session["user_id"]
+
+    OperatingHour.query.filter_by(barber_id=barber_id).delete()
+
+    for day in data["hours"]:
+        hour = OperatingHour(
+            barber_id=barber_id,
+            day=day["day"],
+            open_time=day.get("open_time"),
+            close_time=day.get("close_time"),
+            closed=day.get("closed", False)
+        )
+        db.session.add(hour)
+
+    db.session.commit()
+    return jsonify({"msg": "Operating hours saved"})
+
 
 @app.route("/barber/services", methods=["POST"])
 def add_service():
-    barber_id = session.get("barber_id")
-    barber = Barber.query.get(barber_id)
-    if not barber or barber.status != "approved":
+    if session.get("role") != "barber":
         return jsonify({"msg": "Unauthorized"}), 403
 
     data = request.json
+
     service = Service(
-        barber_id=barber_id,
+        barber_id=session["user_id"],
         name=data["name"],
-        price=data["price"]
+        price=data["price"],
+        duration=data["duration"],
+        description=data.get("description")
     )
+
     db.session.add(service)
     db.session.commit()
+
     return jsonify({"msg": "Service added"})
 
-@app.route("/barber/bookings")
-def barber_bookings():
-    barber_id = session.get("barber_id")
-    bookings = Booking.query.filter_by(barber_id=barber_id).all()
-    return jsonify([{
-        "id": b.id,
-        "service": b.service_name,
-        "date": b.date,
-        "time": b.time,
-        "status": b.status
-    } for b in bookings])
 
-@app.route("/barber/booking/<int:booking_id>", methods=["PATCH"])
-def update_booking(booking_id):
-    barber_id = session.get("barber_id")
-    booking = Booking.query.get(booking_id)
-    if not booking or booking.barber_id != barber_id:
+@app.route("/barber/services/<int:service_id>", methods=["DELETE"])
+def delete_service(service_id):
+    service = Service.query.get(service_id)
+    if not service or service.barber_id != session["user_id"]:
         return jsonify({"msg": "Unauthorized"}), 403
 
-    booking.status = request.json.get("status", booking.status)
+    db.session.delete(service)
     db.session.commit()
-    return jsonify({"msg": "Booking updated"})
+
+    return jsonify({"msg": "Service removed"})
 
 
-@app.route("/customer/register", methods=["POST"])
-def customer_register():
+
+@app.route("/barber/team", methods=["POST"])
+def add_team_member():
+    if session.get("role") != "barber":
+        return jsonify({"msg": "Unauthorized"}), 403
+
     data = request.json
-    customer = Customer(
+
+    member = TeamMember(
+        barber_id=session["user_id"],
         name=data["name"],
-        phone=data["phone"],
-        email=data["email"],
-        password=generate_password_hash(data["password"])
+        specialization=data["specialization"]
     )
-    db.session.add(customer)
+
+    db.session.add(member)
     db.session.commit()
-    return jsonify({"msg": "Customer registered"})
 
-@app.route("/customer/login", methods=["POST"])
-def customer_login():
-    data = request.json
-    customer = Customer.query.filter(
-        (Customer.email == data["login"]) | (Customer.phone == data["login"])
-    ).first()
+    return jsonify({"msg": "Team member added"})
 
-    if customer and check_password_hash(customer.password, data["password"]):
-        session["customer_id"] = customer.id
-        return jsonify({"msg": "Login successful"})
-    return jsonify({"msg": "Invalid credentials"}), 401
 
-@app.route("/customer/forgot-password", methods=["POST"])
-def customer_forgot_password():
-    data = request.json
-    customer = Customer.query.filter(
-        (Customer.email == data["login"]) | (Customer.phone == data["login"])
-    ).first()
-    if not customer:
-        return jsonify({"msg": "Email or phone not registered"}), 404
+@app.route("/barber/team/<int:member_id>", methods=["DELETE"])
+def remove_team_member(member_id):
+    member = TeamMember.query.get(member_id)
+    if not member or member.barber_id != session["user_id"]:
+        return jsonify({"msg": "Unauthorized"}), 403
 
-    customer.password = generate_password_hash(data["new_password"])
+    db.session.delete(member)
     db.session.commit()
-    return jsonify({"msg": "Password updated successfully"})
 
-@app.route("/barbers")
-def list_barbers():
-    barbers = Barber.query.filter_by(status="approved").all()
-    return jsonify([{
-        "id": b.id,
-        "shop_name": b.shop_name
-    } for b in barbers])
+    return jsonify({"msg": "Team member removed"})
+
+
+# -------------------------------------------------
+# BOOKINGS
+# -------------------------------------------------
 
 @app.route("/book", methods=["POST"])
-def book_barber():
-    customer_id = session.get("customer_id")
-    data = request.json
+def book():
+    if session.get("role") != "customer":
+        return jsonify({"msg": "Unauthorized"}), 403
 
-    existing = Booking.query.filter_by(
-        barber_id=data["barber_id"],
-        date=data["date"],
-        time=data["time"]
-    ).first()
-    if existing:
-        return jsonify({"msg": "Time already booked"}), 400
+    data = request.json
 
     booking = Booking(
         barber_id=data["barber_id"],
-        customer_id=customer_id,
-        service_name=data["service"],
+        customer_id=session["user_id"],
+        service_id=data["service_id"],
+        team_member_id=data.get("team_member_id"),
         date=data["date"],
         time=data["time"],
-        location=data["location"]
+        price=data["price"]
     )
+
     db.session.add(booking)
     db.session.commit()
-    return jsonify({"msg": "Booking created"})
 
-@app.route("/my-bookings")
-def my_bookings():
-    customer_id = session.get("customer_id")
-    bookings = Booking.query.filter_by(customer_id=customer_id).all()
-    return jsonify([{
-        "id": b.id,
-        "date": b.date,
-        "time": b.time,
-        "status": b.status
-    } for b in bookings])
+    return jsonify({"msg": "Booking created", "status": "pending"})
 
-@app.route("/cancel/<int:booking_id>", methods=["DELETE"])
-def cancel_booking(booking_id):
-    customer_id = session.get("customer_id")
-    booking = Booking.query.get(booking_id)
-    if not booking or booking.customer_id != customer_id:
+
+@app.route("/barber/bookings/<int:booking_id>", methods=["PATCH"])
+def update_booking(booking_id):
+    if session.get("role") != "barber":
         return jsonify({"msg": "Unauthorized"}), 403
 
-    booking_time = datetime.strptime(
-        f"{booking.date} {booking.time}", "%Y-%m-%d %H:%M"
-    )
-    if datetime.now() + timedelta(hours=2) > booking_time:
-        return jsonify({"msg": "Too late to cancel"}), 400
+    booking = Booking.query.get(booking_id)
+    if not booking or booking.barber_id != session["user_id"]:
+        return jsonify({"msg": "Unauthorized"}), 403
 
-    db.session.delete(booking)
+    booking.status = request.json["status"]  # approved | rejected
     db.session.commit()
-    return jsonify({"msg": "Booking cancelled"})
+
+    return jsonify({"msg": "Booking updated"})
+
+
+@app.route("/customer/bookings")
+def customer_bookings():
+    if session.get("role") != "customer":
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    bookings = Booking.query.filter_by(customer_id=session["user_id"]).all()
+
+    return jsonify([
+        {
+            "id": b.id,
+            "date": b.date,
+            "time": b.time,
+            "status": b.status,
+            "price": b.price
+        } for b in bookings
+    ])
+
+
+@app.route("/barbers")
+def list_barbers():
+    barbers = BarberProfile.query.all()
+    return jsonify([
+        {
+            "id": b.user_id,
+            "shop_name": b.shop_name,
+            "address": b.address,
+            "phone": b.phone,
+            "email": b.email
+        } for b in barbers
+    ])
 
 
 if __name__ == "__main__":

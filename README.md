@@ -1,107 +1,82 @@
-Barbing Salon Booking System - Backend API
-Overview
-
-This is a RESTful API built with Flask and SQLite for a barbing salon booking system. It supports three roles:
-
-Admin – Approves or rejects barbers.
-Barber – Registers, manages services, and handles bookings.
-Customer – Registers, views barbers, and books appointments.
-
-The backend handles registration, login, forgot password, booking creation, updates, and cancellations.
-
-CORS is enabled for frontend integration.
+Barbing Salon Booking System API
+This is a RESTful backend API for a barbing salon booking system built with Flask and SQLite. It supports customers and barbers, handling registrations, logins, bookings, services, and team members. No JWT or admin authentication is required.
 
 Features
+-Barber
+Register and login
+Setup shop profile: shop name, description, address, phone, email, operating hours
+Add/update/remove services: name, price, duration, description
+Add/update/remove team members: name, specialization
+View pending, approved bookings
+Approve or reject bookings
 
-Admin
--Login with hardcoded password.
--View pending barber registrations.
--Approve or reject barbers.
+-Customer
+Register and login
+View list of approved barbers
+View barber details: services, team members, shop info
+Book appointments for services
+View bookings and booking status
+Cancel bookings (with 2-hour prior restriction)
 
-Barber
--Register and login.
--Forgot password functionality.
--Add services with prices.
--View bookings for their services.
--Update booking status (approve, reject, completed).
+-Common
+Forgot password for both barber and customer
+Logout functionality
+Live data updates reflected in dashboards
 
-Customer
--Register and login.
--Forgot password functionality.
--View approved barbers.
--Book appointments with a barber.
--View and cancel own bookings (cancellations only allowed >2 hours before booked time).
+Authentication & User Management
+POST /register → Register as barber or customer
+POST /login → Login for barber or customer
+POST /forgot-password → Reset password for barber or customer
+POST /logout → Logout
 
-Booking system
-Prevents double booking for the same barber at the same date and time.
-Location selection: shop or home service.
+Barber Endpoints
+POST /barber/setup → Set up barber shop profile
+POST /barber/service → Add a service
+PATCH /barber/service/<service_id> → Update a service
+DELETE /barber/service/<service_id> → Remove a service
+POST /barber/team-member → Add a team member
+PATCH /barber/team-member/<member_id> → Update a team member
+DELETE /barber/team-member/<member_id> → Remove a team member
+GET /barber/bookings → List all bookings for barber
+PATCH /barber/booking/<booking_id> → Approve/reject a booking
+
+Customer Endpoints
+GET /barbers → List all approved barbers
+GET /barber/<barber_id> → Get barber details (services, team, shop info)
+POST /book → Book an appointment
+GET /my-bookings → View customer's bookings
+DELETE /cancel/<booking_id> → Cancel a booking
 
 Project Structure
 /barbing-api
-├─ app.py               # Main Flask app
-├─ models.py            # Database models
-├─ database.py          # Database initialization
-├─ config.py            # Config settings (SECRET_KEY, ADMIN_PASSWORD)
-├─ requirements.txt     # Python dependencies
-
-Installation
-
-Clone the repository
-
-git clone <your-repo-url>
-cd barbing-api
+├─ app.py               
+├─ models.py            
+├─ database.py          
+├─ config.py
+├─ requirements.txt     
 
 
-Create a virtual environment and activate
+Setup Instructions
 
+-Clone the repository:
+git clone <repo_url>
+cd <repo_folder>
+
+-Create a virtual environment:
 python -m venv venv
-On Mac: source venv/bin/activate   
-On Windows: venv\Scripts\activate
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate     # Windows
 
-
-Install dependencies
-
+-Install dependencies:
 pip install -r requirements.txt
 
-
-Run the app
-
+-Run the app:
 python app.py
 
-
-By default, the API will run on http://127.0.0.1:5000.
-
-Configuration
-
-Edit config.py to set:
-
-SECRET_KEY = "your_secret_key_here"
-ADMIN_PASSWORD = "admin_password_here"
+The API will be available at http://127.0.0.1:5000
 
 
-SECRET_KEY is used for Flask sessions.
-ADMIN_PASSWORD is the hardcoded password for admin login.
 
-Endpoints
-Admin
-POST /admin/login – Login with hardcoded password.
-GET /admin/pending-barbers – View pending barber registrations.
-POST /admin/approve/<barber_id> – Approve a barber.
-POST /admin/reject/<barber_id> – Reject a barber.
 
-Barber
-POST /barber/register – Register as barber.
-POST /barber/login – Login.
-POST /barber/forgot-password – Reset password using email or phone.
-POST /barber/services – Add services.
-GET /barber/bookings – View bookings.
-PATCH /barber/booking/<booking_id> – Update booking status.
 
-Customer
-POST /customer/register – Register as customer.
-POST /customer/login – Login.
-POST /customer/forgot-password – Reset password using email or phone.
-GET /barbers – List approved barbers.
-POST /book – Book a barber.
-GET /my-bookings – View own bookings.
-DELETE /cancel/<booking_id> – Cancel a booking (if >2 hours before booked time).
+
