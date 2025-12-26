@@ -168,7 +168,6 @@ def delete_service(service_id):
     return jsonify({"msg": "Service removed"})
 
 
-
 @app.route("/barber/team", methods=["POST"])
 def add_team_member():
     if session.get("role") != "barber":
@@ -199,10 +198,6 @@ def remove_team_member(member_id):
 
     return jsonify({"msg": "Team member removed"})
 
-
-# -------------------------------------------------
-# BOOKINGS
-# -------------------------------------------------
 
 @app.route("/book", methods=["POST"])
 def book():
@@ -236,7 +231,7 @@ def update_booking(booking_id):
     if not booking or booking.barber_id != session["user_id"]:
         return jsonify({"msg": "Unauthorized"}), 403
 
-    booking.status = request.json["status"]  # approved | rejected
+    booking.status = request.json["status"]
     db.session.commit()
 
     return jsonify({"msg": "Booking updated"})
