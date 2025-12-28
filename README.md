@@ -2,21 +2,33 @@ Barbing Salon Booking System API
 This is a RESTful backend API for a barbing salon booking system built with Flask and SQLite. It supports customers and barbers, handling registrations, logins, bookings, services, and team members. No JWT or admin authentication is required.
 
 Features
--Barber
-Register and login
-Setup shop profile: shop name, description, address, phone, email, operating hours
-Add/update/remove services: name, price, duration, description
-Add/update/remove team members: name, specialization
-View pending, approved bookings
-Approve or reject bookings
+Barber Endpoints
+POST /barber/setup → Set up barber shop profile
+POST /barber/services → Add a service
+GET /barber/services → List all services added by the barber
+DELETE /barber/services/<service_id> → Remove a service
+POST /barber/team → Add a team member
+GET /barber/team → List all team members added by the barber
+DELETE /barber/team/<member_id> → Remove a team member
+POST /barber/operating-hours → Set weekly operating hours
+GET /barber/operating-hours → Fetch barber’s operating hours
+GET /barber/bookings → List all bookings for the barber
+PATCH /barber/bookings/<booking_id> → Approve or reject a booking
 
--Customer
-Register and login
-View list of approved barbers
-View barber details: services, team members, shop info
-Book appointments for services
-View bookings and booking status
-Cancel bookings (with 2-hour prior restriction)
+
+Customer / Public Endpoints
+GET /barbers → List all barbers
+GET /barbers/<barber_id>/services → List services offered by a specific barber
+GET /barbers/<barber_id>/team → List team members of a specific barber
+POST /book → Book an appointment
+GET /customer/bookings → View customer’s own bookings
+
+
+Auth Endpoints
+POST /register → Register a new user (barber or customer)
+POST /login → Log in a user
+POST /logout → Log out a user
+POST /forgot-password → Update password
 
 -Common
 Forgot password for both barber and customer

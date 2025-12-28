@@ -1,25 +1,22 @@
+Barbing Salon API Documentation
+
 Endpoints, Payloads, and Responses
-1. Register (Barber or Customer)
-
+1.	Register (Barber or Customer)
 POST /register
-
 Payload:
 {
   "name": "John Doe",
   "phone": "08012345678",
   "email": "john@example.com",
   "password": "password123",
-  "role": "barber"   // or "customer"
+  "role": "barber" // or "customer"
 }
 
 Response:
-{
-  "msg": "Registered successfully"
-}
+{ "msg": "Registration successful" }
 
-2. Login
+2.	Login
 POST /login
-
 Payload:
 {
   "email": "john@example.com",
@@ -27,21 +24,13 @@ Payload:
 }
 
 Response (Barber):
-{
-  "msg": "Login successful",
-  "role": "barber"
-}
+{ "msg": "Login successful", "role": "barber" }
 
 Response (Customer):
-{
-  "msg": "Login successful",
-  "role": "customer"
-}
+{ "msg": "Login successful", "role": "customer" }
 
-3. Forgot Password
-
+3.	Forgot Password
 POST /forgot-password
-
 Payload:
 {
   "email": "john@example.com",
@@ -49,41 +38,24 @@ Payload:
 }
 
 Response:
-{
-  "msg": "Password updated successfully"
-}
+{ "msg": "Password updated" }
 
-4. Setup Barber Shop Profile
-
+4.	Setup Barber Shop Profile
 POST /barber/setup
-
 Payload:
 {
   "shop_name": "Barber Kings",
   "description": "Luxury haircuts and grooming",
   "address": "123 Barber Street",
   "phone": "08012345678",
-  "email": "barber@example.com",
-  "operating_hours": {
-    "monday": "09:00-18:00",
-    "tuesday": "09:00-18:00",
-    "wednesday": "09:00-18:00",
-    "thursday": "09:00-18:00",
-    "friday": "09:00-18:00",
-    "saturday": "10:00-16:00",
-    "sunday": "closed"
-  }
+  "email": "barber@example.com"
 }
 
 Response:
-{
-  "msg": "Barber profile set up successfully"
-}
+{ "msg": "Barber profile created" }
 
-5. Add Service
-
-POST /barber/service
-
+5.	Add Service
+POST /barber/services
 Payload:
 {
   "name": "Haircut",
@@ -93,29 +65,76 @@ Payload:
 }
 
 Response:
-{
-  "msg": "Service added successfully"
-}
+{ "msg": "Service added" }
 
-6. Add Team Member
+6.	View Services (Barber)
+GET /barber/services
+Response:
+[
+  {
+    "id": 1,
+    "name": "Haircut",
+    "price": 1500,
+    "duration": 60,
+    "description": "Standard haircut"
+  }
+]
 
-POST /barber/team-member
+7. Delete Service
+DELETE /barber/services/<service_id>
+Response:
+{ "msg": "Service removed" }
 
+8.	Add Team Member
+POST /barber/team
 Payload:
 {
   "name": "Mike",
-  "specialization": "Haircut"
+  "specialty": "Haircut"
 }
 
 Response:
+{ "msg": "Team member added" }
+
+9.	View Team Members (Barber)
+GET /barber/team
+Response:
+[
+  {
+    "id": 1,
+    "name": "Mike",
+    "specialty": "Haircut"
+  }
+]
+
+10.	Remove Team Member
+DELETE /barber/team/<member_id>
+Response:
+{ "msg": "Team member removed" }
+
+11.	Set Operating Hours
+POST /barber/operating-hours
+Payload:
 {
-  "msg": "Team member added successfully"
+  "hours": [
+    { "day": "Monday", "open_time": "09:00", "close_time": "18:00" },
+    { "day": "Sunday", "closed": true }
+  ]
 }
 
-7. View Barbers (Customer)
+Response:
+{ "msg": "Operating hours saved" }
 
+12.	View Operating Hours
+GET /barber/operating-hours
+Response:
+[
+  { "day": "Monday", "open_time": "09:00", "close_time": "18:00", "closed": false },
+  { "day": "Sunday", "open_time": null, "close_time": null, "closed": true }
+]
+
+13.	View Barbers (Customer/Public)
 GET /barbers
-
 Response:
 [
   {
@@ -123,39 +142,50 @@ Response:
     "shop_name": "Barber Kings",
     "address": "123 Barber Street",
     "phone": "08012345678",
-    "email": "barber@example.com",
-    "description": "Luxury haircuts and grooming",
-    "operating_hours": {
-      "monday": "09:00-18:00",
-      "tuesday": "09:00-18:00",
-      ...
-    }
+    "email": "barber@example.com"
   }
 ]
 
-8. Book Appointment (Customer)
+14.	View Barber Services (Customer/Public)
+GET /barbers/<barber_id>/services
+Response:
+[
+  {
+    "id": 1,
+    "name": "Haircut",
+    "price": 1500,
+    "duration": 60,
+    "description": "Standard haircut"
+  }
+]
 
+15.	View Barber Team (Customer/Public)
+GET /barbers/<barber_id>/team
+Response:
+[
+  {
+    "id": 1,
+    "name": "Mike",
+    "specialty": "Haircut"
+  }
+]
+
+16. Book Appointment (Customer)
 POST /book
-
 Payload:
 {
   "barber_id": 1,
-  "service_name": "Haircut",
+  "service_id": 1,
   "date": "2025-12-28",
   "time": "12:00",
-  "preferred_team_member": "Mike",
-  "location": "shop"  // or "home"
+  "price": 1500
 }
 
 Response:
-{
-  "msg": "Booking created"
-}
+{ "msg": "Booking created", "status": "pending" }
 
-9. View Bookings (Customer)
-
-GET /my-bookings
-
+17.	View Bookings (Customer)
+GET /customer/bookings
 Response:
 [
   {
@@ -170,41 +200,22 @@ Response:
   }
 ]
 
-10. Update Booking (Barber)
-
-PATCH /barber/booking/<booking_id>
-
+18.	Update Booking Status (Barber)
+PATCH /barber/bookings/<booking_id>
 Payload:
-{
-  "status": "approved"  // or "rejected" or "completed"
-}
+{ "status": "approved" } or "rejected"
 
 Response:
-{
-  "msg": "Booking updated"
-}
+{ "msg": "Booking updated" }
 
-11. Cancel Booking (Customer)
-
-DELETE /cancel/<booking_id>
-
-Response:
-{
-  "msg": "Booking cancelled"
-}
-
-12. Logout
-
+19.	Logout
 POST /logout
-
 Response:
-{
-  "msg": "Logged out successfully"
-}
+{ "msg": "Logged out" }
+
 
 Notes
-All endpoints are session-based
-Barber approvals are not required; as soon as they set up their profile, they are listed publicly.
-Bookings automatically start as pending, and barbers can approve/reject them.
-Customers cannot cancel appointments less than 2 hours before the booked time.
-CORS is enabled for http://localhost:5173 (adjust if your frontend runs elsewhere).
+•All endpoints are session-based.
+•Customers cannot cancel appointments less than 2 hours before the scheduled time.
+•CORS is enabled for http://localhost:5173 (adjust if frontend runs elsewhere).
+•Bookings automatically start as pending. Barbers approve/reject them.
