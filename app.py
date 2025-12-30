@@ -25,14 +25,21 @@ app.config.update(
 )
 
 # Enable CORS for all routes
+
 CORS(
     app,
     resources={r"/*": {
-        "origins": ["http://localhost:5173", "http://localhost:3000", "*"],
+        "origins": [
+            "http://localhost:5173", 
+            "http://localhost:3000",
+            "https://frontend-render-barber.vercel.app", 
+            "https://*.vercel.app" 
+        ],
         "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }}
 )
+
 
 init_db(app)
 
