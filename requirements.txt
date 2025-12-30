@@ -4,3 +4,4 @@ Flask-Cors
 Werkzeug
 gunicorn
 PyJWT==2.8.0
+

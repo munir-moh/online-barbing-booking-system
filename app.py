@@ -25,7 +25,6 @@ app.config.update(
 )
 
 # Enable CORS for all routes
-
 CORS(
     app,
     resources={r"/*": {
@@ -39,7 +38,6 @@ CORS(
         "allow_headers": ["Content-Type", "Authorization"]
     }}
 )
-
 
 init_db(app)
 
@@ -373,7 +371,8 @@ def get_customer_bookings():
     result = []
 
     for b in bookings:
-        barber = BarberProfile.query.filter_by(id=b.barber_id).first()
+        # ✅ FIX: Query by user_id (foreign key), not id (primary key)
+        barber = BarberProfile.query.filter_by(user_id=b.barber_id).first()
         service = Service.query.get(b.service_id)
 
         result.append({
