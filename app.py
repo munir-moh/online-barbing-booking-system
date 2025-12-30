@@ -20,8 +20,8 @@ app.config.update(
     SECRET_KEY=SECRET_KEY,
     SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI,
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     PERMANENT_SESSION_LIFETIME=timedelta(days=7)
 )
@@ -54,7 +54,13 @@ def register():
     )
     db.session.add(user)
     db.session.commit()
-    return jsonify({"msg": "Registration successful"})
+    
+    # ✅ ADD THIS: Establish session after registration
+    session.permanent = True
+    session["user_id"] = user.id
+    session["role"] = user.role
+    
+    return jsonify({"msg": "Registration successful", "role": user.role})
 
 @app.route("/login", methods=["POST"])
 def login():
