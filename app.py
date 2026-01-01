@@ -24,7 +24,6 @@ app.config.update(
     SQLALCHEMY_TRACK_MODIFICATIONS=False
 )
 
-# Enable CORS for all routes
 CORS(
     app,
     resources={r"/*": {
@@ -41,11 +40,7 @@ CORS(
 
 init_db(app)
 
-# ------------------------
-# JWT Helper Functions
-# ------------------------
 def create_token(user_id, role):
-    """Create JWT token"""
     payload = {
         'user_id': user_id,
         'role': role,
@@ -54,20 +49,18 @@ def create_token(user_id, role):
     return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
 
 def verify_token():
-    """Verify JWT token from Authorization header"""
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return None
     
     try:
-        token = auth_header.split(' ')[1]  # Remove 'Bearer ' prefix
+        token = auth_header.split(' ')[1]
         payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
         return payload
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, IndexError):
         return None
 
 def require_auth(role=None):
-    """Decorator to require authentication"""
     def decorator(f):
         def wrapper(*args, **kwargs):
             payload = verify_token()
@@ -83,9 +76,6 @@ def require_auth(role=None):
         return wrapper
     return decorator
 
-# ------------------------
-# Authentication Routes
-# ------------------------
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
@@ -101,8 +91,7 @@ def register():
     )
     db.session.add(user)
     db.session.commit()
-    
-    # Create token
+
     token = create_token(user.id, user.role)
     
     return jsonify({
@@ -131,7 +120,6 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    # With JWT, logout is handled client-side by removing the token
     return jsonify({"msg": "Logged out"})
 
 @app.route("/forgot-password", methods=["POST"])
@@ -144,9 +132,6 @@ def forgot_password():
     db.session.commit()
     return jsonify({"msg": "Password updated"}), 200
 
-# ------------------------
-# /me Route
-# ------------------------
 @app.route("/me", methods=["GET"])
 @require_auth()
 def me():
@@ -164,9 +149,6 @@ def me():
         "has_profile": has_profile
     })
 
-# ------------------------
-# Barber Setup and Management
-# ------------------------
 @app.route("/barber/setup", methods=["POST"])
 @require_auth(role="barber")
 def barber_setup():
@@ -188,7 +170,6 @@ def barber_setup():
     db.session.add(profile)
     db.session.flush()
 
-    # Add operating hours if provided
     if 'operating_hours' in data:
         for day, hours in data['operating_hours'].items():
             if hours == 'closed':
@@ -245,9 +226,6 @@ def get_barber(barber_id):
         "operating_hours": operating_hours
     })
 
-# ------------------------
-# Services Routes
-# ------------------------
 @app.route("/barber/services", methods=["POST"])
 @require_auth(role="barber")
 def create_service():
@@ -291,9 +269,6 @@ def delete_service(service_id):
     db.session.commit()
     return jsonify({"msg": "Service deleted"})
 
-# ------------------------
-# Team Members Routes
-# ------------------------
 @app.route("/barber/team", methods=["POST"])
 @require_auth(role="barber")
 def create_team_member():
@@ -333,9 +308,6 @@ def delete_team_member(member_id):
     db.session.commit()
     return jsonify({"msg": "Team member deleted"})
 
-# ------------------------
-# Booking Routes
-# ------------------------
 @app.route("/book", methods=["POST"])
 @require_auth()
 def create_booking():
@@ -371,7 +343,6 @@ def get_customer_bookings():
     result = []
 
     for b in bookings:
-        # ✅ FIX: Query by user_id (foreign key), not id (primary key)
         barber = BarberProfile.query.filter_by(user_id=b.barber_id).first()
         service = Service.query.get(b.service_id)
 
@@ -427,6 +398,7 @@ def update_booking_status(booking_id):
     booking.status = data["status"]
     db.session.commit()
     return jsonify({"msg": "Booking updated"})
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

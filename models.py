@@ -8,7 +8,7 @@ class User(db.Model):
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # "customer" or "barber"
+    role = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     barber_profile = db.relationship("BarberProfile", backref="user", uselist=False)
@@ -48,7 +48,7 @@ class Service(db.Model):
     barber_id = db.Column(db.Integer, db.ForeignKey("barber_profile.id"), nullable=False)
 
     name = db.Column(db.String(120), nullable=False)
-    duration = db.Column(db.Integer, nullable=False)  # minutes
+    duration = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=True)
 
@@ -73,6 +73,6 @@ class Booking(db.Model):
     appointment_time = db.Column(db.String(10), nullable=False)
 
     price = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default="pending")  # pending, approved, rejected
+    status = db.Column(db.String(20), default="pending")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
