@@ -1,221 +1,345 @@
-Barbing Salon API Documentation
+Barbing Booking System API – API Documentation
 
-Endpoints, Payloads, and Responses
-1.	Register (Barber or Customer)
+Base URL:
+https://barbing-salon-api.onrender.com
+
+Local (development):
+http://localhost:5000
+
+Authentication:
+JWT (Bearer Token)
+
+Header format:
+Authorization: Bearer <token>
+
+Token expires after 7 days.
+
+Authentication (Public)
+
+Register
 POST /register
-Payload:
+
+Request Body:
 {
   "name": "John Doe",
   "phone": "08012345678",
   "email": "john@example.com",
-  "password": "password123",
-  "role": "barber" // or "customer"
+  "role": "customer",
+  "password": "password123"
 }
 
 Response:
-{ "msg": "Registration successful" }
+{
+  "msg": "Registration successful",
+  "token": "<jwt_token>",
+  "role": "customer",
+  "user_id": 1
+}
 
-2.	Login
+
+Login
 POST /login
-Payload:
+
+Request Body:
 {
   "email": "john@example.com",
   "password": "password123"
 }
 
-Response (Barber):
-{ "msg": "Login successful", "role": "barber" }
+Response:
+{
+  "msg": "Login successful",
+  "token": "<jwt_token>",
+  "role": "customer",
+  "user_id": 1
+}
 
-Response (Customer):
-{ "msg": "Login successful", "role": "customer" }
 
-3.	Forgot Password
+Logout
+POST /logout
+
+Response:
+{
+  "msg": "Logged out"
+}
+
+
+
+Forgot Password
 POST /forgot-password
-Payload:
+
+Request Body:
 {
   "email": "john@example.com",
   "new_password": "newpassword123"
 }
 
-Response:
-{ "msg": "Password updated" }
+Success Response (200):
+{
+  "msg": "Password updated"
+}
 
-4.	Setup Barber Shop Profile
+Error Response (404):
+{
+  "error": "User not found"
+}
+
+
+
+User (Protected)
+
+Get Current User
+GET /me
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "id": 1,
+  "role": "barber",
+  "has_profile": true
+}
+
+
+
+Barber Profile
+Create Barber Profile (Protected – Barber Only)
 POST /barber/setup
-Payload:
+
+Headers:
+Authorization: Bearer <token>
+
+Request Body:
 {
-  "shop_name": "Barber Kings",
-  "description": "Luxury haircuts and grooming",
-  "address": "123 Barber Street",
-  "phone": "08012345678",
-  "email": "barber@example.com"
-}
-
-Response:
-{ "msg": "Barber profile created" }
-
-5.	Add Service
-POST /barber/services
-Payload:
-{
-  "name": "Haircut",
-  "price": 1500,
-  "duration": 60,
-  "description": "Standard haircut"
-}
-
-Response:
-{ "msg": "Service added" }
-
-6.	View Services (Barber)
-GET /barber/services
-Response:
-[
-  {
-    "id": 1,
-    "name": "Haircut",
-    "price": 1500,
-    "duration": 60,
-    "description": "Standard haircut"
+  "shop_name": "Elite Cuts",
+  "description": "Luxury barbing experience",
+  "address": "Kaduna",
+  "phone": "08098765432",
+  "email": "elitecuts@gmail.com",
+  "operating_hours": {
+    "monday": "09:00-18:00",
+    "sunday": "closed"
   }
-]
-
-7. Delete Service
-DELETE /barber/services/<service_id>
-Response:
-{ "msg": "Service removed" }
-
-8.	Add Team Member
-POST /barber/team
-Payload:
-{
-  "name": "Mike",
-  "specialty": "Haircut"
 }
 
 Response:
-{ "msg": "Team member added" }
-
-9.	View Team Members (Barber)
-GET /barber/team
-Response:
-[
-  {
-    "id": 1,
-    "name": "Mike",
-    "specialty": "Haircut"
-  }
-]
-
-10.	Remove Team Member
-DELETE /barber/team/<member_id>
-Response:
-{ "msg": "Team member removed" }
-
-11.	Set Operating Hours
-POST /barber/operating-hours
-Payload:
 {
-  "hours": [
-    { "day": "Monday", "open_time": "09:00", "close_time": "18:00" },
-    { "day": "Sunday", "closed": true }
-  ]
+  "msg": "Barber profile created"
 }
 
-Response:
-{ "msg": "Operating hours saved" }
 
-12.	View Operating Hours
-GET /barber/operating-hours
-Response:
-[
-  { "day": "Monday", "open_time": "09:00", "close_time": "18:00", "closed": false },
-  { "day": "Sunday", "open_time": null, "close_time": null, "closed": true }
-]
 
-13.	View Barbers (Customer/Public)
+List All Barbers (Public)
 GET /barbers
+
+Response:
+[
+  {
+    "id": 2,
+    "shop_name": "Elite Cuts",
+    "address": "Kaduna",
+    "phone": "08098765432",
+    "email": "elitecuts@gmail.com",
+    "description": "Luxury barbing experience"
+  }
+]
+
+---
+
+Get Barber Details (Public)
+GET /barbers/{barber_id}
+
+Response:
+{
+  "id": 2,
+  "shop_name": "Elite Cuts",
+  "address": "Kaduna",
+  "phone": "08098765432",
+  "email": "elitecuts@gmail.com",
+  "description": "Luxury barbing experience",
+  "operating_hours": {
+    "monday": "09:00-18:00",
+    "sunday": "closed"
+  }
+}
+
+
+
+Services
+Create Service (Protected – Barber Only)
+POST /barber/services
+
+Headers:
+Authorization: Bearer <token>
+
+Request Body:
+{
+  "name": "Hair Cut",
+  "description": "Professional haircut",
+  "price": 3000,
+  "duration": 30
+}
+
+Response:
+{
+  "msg": "Service created",
+  "id": 1
+}
+
+
+Get Barber Services (Public)
+GET /barbers/{barber_id}/services
+
 Response:
 [
   {
     "id": 1,
-    "shop_name": "Barber Kings",
-    "address": "123 Barber Street",
-    "phone": "08012345678",
-    "email": "barber@example.com"
+    "name": "Hair Cut",
+    "description": "Professional haircut",
+    "price": 3000,
+    "duration": 30
   }
 ]
 
-14.	View Barber Services (Customer/Public)
-GET /barbers/<barber_id>/services
+
+
+Delete Service (Protected – Barber Only)
+DELETE /barber/services/{service_id}
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "msg": "Service deleted"
+}
+
+
+Team
+Add Team Member (Protected – Barber Only)
+POST /barber/team
+
+Headers:
+Authorization: Bearer <token>
+
+Request Body:
+{
+  "name": "Munir",
+  "specialty": "Fade cuts"
+}
+
+Response:
+{
+  "msg": "Team member added",
+  "id": 1
+}
+
+
+Get Barber Team (Public)
+GET /barbers/{barber_id}/team
+
 Response:
 [
   {
     "id": 1,
-    "name": "Haircut",
-    "price": 1500,
-    "duration": 60,
-    "description": "Standard haircut"
+    "name": "Munir",
+    "specialty": "Fade cuts"
   }
 ]
 
-15.	View Barber Team (Customer/Public)
-GET /barbers/<barber_id>/team
+
+Remove Team Member (Protected – Barber Only)
+DELETE /barber/team/{member_id}
+
+Headers:
+Authorization: Bearer <token>
+
 Response:
-[
-  {
-    "id": 1,
-    "name": "Mike",
-    "specialty": "Haircut"
-  }
-]
+{
+  "msg": "Team member deleted"
+}
 
-16. Book Appointment (Customer)
+
+Bookings
+Create Booking (Protected – Customer or Barber)
 POST /book
-Payload:
+
+Headers:
+Authorization: Bearer <token>
+
+Request Body:
 {
   "barber_id": 1,
   "service_id": 1,
-  "date": "2025-12-28",
-  "time": "12:00",
-  "price": 1500
+  "date": "2026-01-10",
+  "time": "14:00",
+  "price": 3000
 }
 
-Response:
-{ "msg": "Booking created", "status": "pending" }
+Response (201):
+{
+  "msg": "Booking created",
+  "id": 1
+}
 
-17.	View Bookings (Customer)
+
+View My Bookings (Protected)
 GET /customer/bookings
+
+Headers:
+Authorization: Bearer <token>
+
 Response:
 [
   {
     "id": 1,
-    "barber": "Barber Kings",
-    "service": "Haircut",
-    "date": "2025-12-28",
-    "time": "12:00",
-    "team_member": "Mike",
-    "price": 1500,
-    "status": "pending"
+    "barber": "Elite Cuts",
+    "service": "Hair Cut",
+    "date": "2026-01-10",
+    "time": "14:00",
+    "status": "pending",
+    "price": 3000
   }
 ]
 
-18.	Update Booking Status (Barber)
-PATCH /barber/bookings/<booking_id>
-Payload:
-{ "status": "approved" } or "rejected"
+
+
+View Barber Bookings (Protected – Barber Only)
+GET /barber/bookings
+
+Headers:
+Authorization: Bearer <token>
 
 Response:
-{ "msg": "Booking updated" }
+[
+  {
+    "id": 1,
+    "customer_id": 3,
+    "customer_name": "John Doe",
+    "customer_email": "john@example.com",
+    "service_id": 1,
+    "service": "Hair Cut",
+    "date": "2026-01-10",
+    "time": "14:00",
+    "status": "pending",
+    "price": 3000
+  }
+]
 
-19.	Logout
-POST /logout
+
+Update Booking Status (Protected – Barber Only)
+PATCH /barber/bookings/{booking_id}
+
+Headers:
+Authorization: Bearer <token>
+
+Request Body:
+{
+  "status": "approved"
+}
+
 Response:
-{ "msg": "Logged out" }
-
-
-Notes
-•All endpoints are session-based.
-•Customers cannot cancel appointments less than 2 hours before the scheduled time.
-•CORS is enabled for http://localhost:5173 (adjust if frontend runs elsewhere).
-•Bookings automatically start as pending. Barbers approve/reject them.
+{
+  "msg": "Booking updated"
+}
